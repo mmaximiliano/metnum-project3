@@ -1,0 +1,29 @@
+\section{Introducción}
+\label{sec:introduccion}
+% Escribir contexto del problema, qué es una tomografía computada y por qué nos interesa
+Cada vez se utilizan herramientas computacionales en más ramas de las ciencias, incluyendo a las ciencias médicas.
+Las aplicaciones de sistemas asistidos por computadoras en distintas especialidades de estas ciencias
+presentan una gran mejoría en el sistema de salud a nivel mundial\footnote{https://es.wikipedia.org/wiki/Inform\%C3\%A1tica\_en\_salud}.
+El veloz avance de la computación (tanto en software como en hardware)
+posibilita un constante progreso en el desarrollo de nuevas aplicaciones médicas.
+Algunos de los primeros usos fueron el procesamiento de historias clínicas y datos epidemiológicos.
+Luego se han agregado los instrumentos de diagnóstico y tratamiento médicos, entre otros\footnote{http://www.cocmed.sld.cu/no63/n63edi.htm}.
+
+En el presente trabajo, nos interesa estudiar la aplicación de diferentes técnicas algorítmicas
+y de aproximación para la reconstrucción de imágenes.
+En particular, desarrollaremos un programa que nos permita realizar reconstrucciones de imágenes tomográficas computadas.
+Estas consisten en atravesar el objeto de estudio con rayos X,
+para así lograr estimar la densidad del mismo.
+Las imágenes tomográficas computadas permiten analizar las estructuras internas de las distintas partes del organismo,
+lo cual facilita el diagnóstico de distintos problemas médicos, como fracturas, hemorragias internas, tumores o infecciones en los distintos órganos.
+También permite conocer la morfología de la médula espinal y de los discos intervertebrales
+o medir la densidad ósea, importante en el caso de osteoporosis\footnote{https://www.nibib.nih.gov/science-education/science-topics/computed-tomography-ct}.
+
+Un problema que se presenta, es que los instrumentos utilizados poseen errores de medición.
+Y esto debe ser tenido en cuenta, pues por los usos descritos anteriormente un error de este tipo
+podría derivar en un mal diagnóstico,
+lo cual conllevaría consecuencias aún peores.
+Esto nos motiva a estudiar diferentes métodos de aproximación para solventar los problemas de precisión.
+En particular, analizaremos el método de cuadrados mínimos lineales.
+Veremos la calidad de las reconstrucciones que consigue y la velocidad a la cual lo hace,
+además de experimentar con distintos tipos de tomografías y niveles de ruido, entre otras cosas.

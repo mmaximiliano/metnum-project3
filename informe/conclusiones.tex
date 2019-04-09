@@ -1,0 +1,45 @@
+\section{Conclusiones}
+\label{sec:conclusiones}
+
+Se nos pidió implementar un programa en lenguaje C++ que simule el proceso de una tomografía computada y su reconstrucción, que realice el procedimiento explicado en el enunciado del trabajo práctico.
+
+
+Para la correcta resolución del mismo utilizamos uno de los métodos de aproximación visto en clase, cuadrados mínimos lineales y fuimos capaces de aplicar los conceptos teóricos que este método propone al problema práctico de reconstruir una imagen, que pudiera estar sujeta a ruido.
+
+
+Durante el desarrollo y la resolución del mismo observamos el gran potencial del método para este tipo de problemas. No obstante, vimos que el método trae de la mano un gran problema de estabilidad numérica, como se discutió en la sección anterior, lo cual puede traer altercados a la hora de realizar los cálculos necesarios.
+
+
+Con el fin de solventar los problemas de estabilidad numérica, se propuso la utilización de la descomposición SVD de la matriz asociada al sistema lineal a resolver. 
+
+
+De esta manera, fuimos capaces de observar el impacto que tuvo la aplicación de la descomposición vista en clase a la hora de aminorar estos conflictos, pues como se vio en la materia y se discutió en la sección anterior el número de condición de las matrices ortogonales ($U$ y $V$) es el mínimo posible y en el caso de la matriz diagonal ($\Sigma$) no se requiere realizar Eliminación Gaussiana.
+
+
+Teniendo esto en mente, pudimos hacer uso de un buen método de aproximación, cuadrados mínimos lineales, sin tener que pagar el costo de su inestabilidad numérica.\\
+
+En la experimentación no vimos diferencias notorias que valgan la pena mencionar cuando probamos con distintas imágenes. Esto nos hace concluir que es un método genérico que funciona para distintos casos.
+
+Además probamos con distintas formas de generar rayos para reconstruir la imagen. Pudimos ver que el método más
+eficiente fue el de generar los rayos de manera aleatoria, en la mayoría de los casos. Seguido por los métodos de
+all borders y lateral borders. Y por último el método de rotar, que no dió buenos resultados en casi ningún experimento.
+Llegamos a la conclusión que el método de rotar no funciona de manera eficiente porque queda mucha área en la imagen sin 
+cubrir por rayos. También pensamos que el método \verb|all borders| y \verb|lateral borders| funciona peor en la mayoría de 
+los casos porque tienen una estructura definida y limitada que se repite de igual manera para todas las imágenes. 
+Esto puede hacer que deje afuera ciertos datos importantes para algunas imágenes.
+
+También experimentamos con distinta cantidad de rayos en función de los distintos tamaños de nuestras imágenes de prueba, y conseguimos
+resultados muy interesantes. Concluimos que no necesariamente aumentar la cantidad de rayos aumenta la calidad del resultado, como sería 
+intuitivo pensar, sino que es una variable que está muy determinada por el método de generación de rayos que se está empleando.
+
+Luego hicimos experimentos variando la cantidad de valores singulares que calculamos para resolver CML y llegamos a conclusiones bastante 
+inesperadas en comparación a otros experimentos. Nuestra hipótesis inicial era que cuanto mayor sea el número de valores singulares se 
+calculen, mejor sería la calidad de los resultados. Sin embargo nos encontramos con que hay un limite para este número, donde la calidad de los 
+resultados empieza a decrecer. Con esto concluimos que la cantidad de valores singulares es muy útil hasta cierto punto donde se tiene más 
+información que la necesaria para resolver el problema, y comienza a perjudicar en la calidad de los resultados.
+
+Por último, también nos fue de interés experimentar con los tiempos de cómputo. Como es muy usual en este tipo de problemas, nuevamente 
+nos encontramos con un \textit{trade-off} entre la velocidad con la que se pueden obtener resultados, y la calidad ó confiabilidad 
+de los mismos, a la hora de elegir el tamaño de la discretización. En este trabajo se pudo experimentar de primera mano la enorme cantidad de tiempo que puede llevar resolver un problema 
+computacional, y podemos concluir que este \textit{trade-off} se debe tener muy presente a la hora de aplicar estos resultados en la 
+práctica.

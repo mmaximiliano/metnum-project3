@@ -1,0 +1,170 @@
+\section{Desarrollo}
+\label{sec:desarrollo}
+Como hemos contado, necesitamos simular el funcionamiento del tomógrafo
+a partir de una imagen en escala de grises que consideramos como fuente de verdad. Para cumplir este objetivo debemos:
+
+\begin{enumerate}
+\item Levantar la imagen que queremos reconstruir
+\item Definir un tamaño de discretización.
+\item Generar un conjunto de rayos y calcular los tiempos de cada uno.
+\item Agregar ruido a los tiempos obtenidos para modelar un problema real.
+\item Obtener los valores inversos de las velocidades originales en cada celda.
+\item Resolver la ecuación explicada en la sección \ref{eq:1} utilizando cuadrados mínimos % ver de agregar la referencia
+\item Generar y guardar la imagen obtenida.
+\end{enumerate}
+
+A continuación vamos a explicar las decisiones más importantes tomadas a la hora de implementar la solución del problema en \verb|C++|.
+
+\subsection{Simulación del tomógrafo computado}
+
+\subsubsection{Procesamiento de imágenes}
+Las imágenes que queremos reconstruir van a estar en formato \verb|PNG|. 
+Para hacer la lectura de la imagen más sencilla utilizamos un script de python
+ provisto por la cátedra para convertir imágenes en \verb|PNG| a \verb|CSV|. 
+La imagen decidimos representarla como una \verb|matriz| de \verb|int|.
+
+\subsubsection{Cálculo de distancias y tiempos}
+% Modelado de rayos
+Decidimos modelar los rayos con dos vectores bidimensionales,
+que representan el punto de origen del rayo y el punto de destino,
+en las coordenadas de la imagen original.
+
+Luego, por cada rayo, vemos por qué píxeles de esta imagen pasa.
+Tomamos el tiempo del rayo como la sumatoria de la intensidad de estos pixeles,
+y contamos la distancia en cada uno de los sectores de la discretización
+como la cantidad de pixeles del sector por los que pasa el rayo.
+
+\subsubsection{Simulación de ruido}
+\label{sec:desarrollo-noise}
+% Uso de ruido normal con varianza como parametro
+% Varianza elegida en proporcion a...?
+Queremos modelar un instrumento del mundo real.
+Dado que no existen instrumentos 100\% precisos y exactos,
+vamos a agregar en nuestro modelo ruido aleatorio a los tiempos de los rayos.
+
+Consideramos que lo más realista es utilizar una \textbf{distribución normal} con:
+\begin{itemize}
+	\item Media en 0
+	\item Desvio en $\frac{p}{100} \times (255 \times n)$
+\end{itemize}
+Donde $p$ es un parámetro de entrada y $n$ es el tamaño de la imagen de salida.
+En otras palabras, el ruido es una \textbf{variable aleatoria} con esperanza de no afectar en nada, y un desvío que es un 
+porcentaje ($p$) a elegir del máximo tiempo posible ($255 \times n$)
+
+Este porcentaje queda como parámetro para nuestro programa,
+de forma de poder estudiar el comportamiento de los métodos utilizados con distintos niveles de ruido. 
+Ademśs, si el tiempo de algún rayo queda menor a 1 luego de aplicar la distribución, 
+lo cambiamos a 1 porque no tiene sentido tener tiempo negativos.
+
+\subsection{Reconstrucción de la imagen}
+Una vez simulados los tiempos y distancias,
+tenemos el desafío de utilizarlos para reconstruir la imagen tomográfica.
+Como contamos en la sección \ref{sec:intro-cml},
+lo haremos aplicando \textbf{Cuadrados Mínimos Lineales} para minimizar
+
+\begin{equation*}
+	||Ds - t||_{2}
+\end{equation*}
+
+Y para esto primero calculamos la factorización \textbf{SVD} de \textit{D}.
+Recordamos que la factorización SVD de $D \in \mathbb{R}^{mxn^{2}}$ es de la forma:
+
+\begin{equation*}
+	D = U \Sigma V^{t}
+\end{equation*}
+
+\subsubsection{Cuadrados Mínimos Lineales}
+% Como se calcula a partir de SVD
+% Complejidad
+Dada la factorización SVD (de cuyo cálculo hablaremos en la sección \ref{sec:desarrollo-svd}),
+seguimos el procedimiento explicado en la sección \ref{sec:intro-cml}.
+
+Calculamos el vector $c = U^{t} t$.
+Luego, como se demostró anteriormente, la solución de CML se da cuando el vector $z = V^{t} s$ cumple que:
+\begin{equation*}
+	z_{i} = c_{i}/\sigma_{i}
+\end{equation*}
+
+Entonces, calculamos z de esa manera. Finalmente, solo queda resolver el sistema $z = V^{t} s$,
+el cual es simple ya que \textit{V} es ortogonal.
+Es decir, podemos computar s de la siguiente manera:
+\begin{equation*}
+	s = V z
+\end{equation*}
+
+Dado que los datos tienen ruido, al reconstruir la imagen con CML
+quedan algunos datos fuera del rango posible para un píxel
+(0 a 255, dado que es escala de grises).
+Tomamos la decisión de saturar estos valores.
+Es decir, en caso de que un píxel de negativo, le damos el valor 0,
+y en caso de quedar con un valor mayor a 255, le asignamos 255.
+
+\subsubsection{Descomposición en SVD}
+\label{sec:desarrollo-svd}
+% Problema numerico (no encontrar todos los autovalores)
+% Esto nos hizo plantear un experimento al respecto
+% Tardanza en el computo, complejidad
+Para obtener la factorización, requerimos calcular los autovalores de $D^{t} D$.
+Estos los obtenemos realizando la multiplicación
+y aplicando repetidas veces el \textbf{Método de la Potencia} con \textbf{deflación}\cite{pot}.
+Este nos sirve para calcular tanto los autovalores como los autovectores de $D^{t} D$.
+Esto es especialmente útil, dado que estos autovectores sirven como columnas de la matriz \textit{V}.
+Más aún, dado que \textit{V} es ortogonal y $\Sigma$ es diagonal, podemos obtener U fácilmente despejando:
+
+\begin{equation*}
+	D V \Sigma^{-1} = U
+\end{equation*}
+
+Para el Método de la Potencia, utilizamos como criterio de corte 100 iteraciones.
+Esto es debido a que encontramos imprecisiones utilizando menos iteraciones,
+y dado que realizaremos una gran cantidad de veces deflación (arrastrando los errores del Método de la Potencia),
+preferimos utilizar un criterio conservador. Esto lo pudimos ver a través de los tests que realizamos para \verb|SVD| con imágenes con las que vamos a experimentar en la sección \ref{sec:experimentacion}. Una buena mejora en el trabajo práctico sería experimentar sobre la decisión de este corte. Pero dado el tiempo limitado y que pudimos ver a través de tests que 100 es un buen número, tomamos la decisión de usar este número como criterio de corte y experimentar sobre cosas más primordiales.
+
+No encontramos mayores dificultades en el desarrollo del método.
+Sin embargo, a la hora de probarlo con tests,
+nos encontramos con dos inconvenientes relacionados al cálculo de SVD.
+
+El primero fue que el cálculo de SVD tardaba mucho más que el resto de métodos.
+Analizando más en detalle, vimos que esto se daba en dos partes:
+\begin{itemize}
+	\item Calculando $D^{t} D$: esto se debe a que, siendo $D \in \mathbb{R}^{mxn^{2}}$,
+		esta multiplicación cuesta $O(m * (n^2)^2)$.
+	\item Haciendo el Método de la Potencia con deflación:
+		cada iteración del Método de la Potencia cuesta $O(n^2 * 100)$ operaciones
+		(multiplicando $D^{t} D \in \mathbb{R}^{n^{2}xn^{2}}$ por un vector).
+		Luego, cada vez que realizamos deflación, cuesta $O(n^{2})$.
+		Haciendo esto para cada uno de los $n^2$ autovalores, cuesta $O(n^2 n^2) = O(n^4)$.
+\end{itemize}
+
+Esto nos llevó a realizar optimizaciones, las cuales explicaremos mejor en la sección \ref{sec:desarrollo-opt}.
+
+El segundo, que nos encontramos con que el Método de la Potencia,
+luego de varias aplicaciones de deflación, comenzaba a devolver autovalores negativos cercanos a 0.
+Esto no tiene sentido teórico, ya que $D^{t} D$ es una matriz simétrica semidefinida positiva,
+por lo que intuimos que se debe dar por inestabilidad numérica del Método de la Potencia con deflación.
+Sin embargo, estos autovalores son los de menor valor absoluto.
+Como vimos en la sección \ref{sec:lowrank}, podemos descartarlos y truncar la descomposición,
+perdiendo relativamente poca información.
+
+Esta idea nos resultó interesante,
+dado que el cálculo de autovalores es una de las partes que más costo computacional tiene.
+Es por eso que nos propusimos experimentar limitando la cantidad de autovalores que calculamos,
+para ver la relación entre el tiempo ahorrado y la pérdida de calidad en las reconstrucciones.
+
+\subsection{Optimizaciones}
+\label{sec:desarrollo-opt}
+% Cache y threads
+\subsubsection{Reutilización de SVD}
+Al cambiar la intensidad del ruido, manteniendo el resto de parámetros idénticos,
+la matriz \textit{D} se mantiene igual.
+Por lo tanto, vimos la oportunidad de guardar en un archivo la factorización SVD la primera vez que la calculamos.
+De esta forma, las siguientes veces que realicemos el mismo experimento con distinto ruido,
+lo único que hacemos es recuperar la factorización de este archivo.
+Por motivos obvios, esto \textbf{no} es usado en los experimentos
+que tienen como objetivo medir la velocidad de los métodos.
+
+\subsubsection{Paralelización de cálculos}
+Tanto el cálculo de $D^{t} D$ como el Método de la Potencia
+usan repetidas veces la multiplicación entre matriz y vector,
+una operación que resulta trivial de paralelizar.
+Es por eso que a este operador le agregamos paralelización utilizando \textit{threads}.

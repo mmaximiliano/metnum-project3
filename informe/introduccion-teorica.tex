@@ -1,0 +1,280 @@
+\section{Marco Teórico}
+\label{sec:Marco Teorico}
+
+\subsection{Contexto}
+% Cosas sobre el método de reconstrucción
+En el presente trabajo nos proponemos modelar un problema práctico para resolverlo utilizando métodos computacionales.
+Este problema consiste en reconstruir imágenes, en particular nos interesa
+poder reconstruir imágenes tomográficas sujetas a ruido.
+
+Como se dijo en la sección \ref{sec:introduccion}, la tomografía computada, o \verb|TC|, es un procedimiento
+computarizado de imágenes por rayos X con el cual, en lugar de obtener una imagen de proyección
+(como hace la radiografía convencional),
+se obtienen múltiples imágenes al efectuar movimientos de rotación alrededor del cuerpo
+con la fuente de rayos X y los detectores de radiación.
+La representación final de la imagen tomográfica se obtiene mediante
+la captura de las señales por los detectores y su posterior proceso mediante algoritmos de reconstrucción,
+los cuales nos proponemos profundizar.
+
+El aparato de \verb|TC| emite un haz de rayos X que incide sobre el objeto que se estudia.
+La radiación que no ha sido absorbida por el objeto es recogida por los detectores.
+Luego el emisor del haz, que tenía una orientación determinada (por ejemplo, estrictamente vertical a 90º)
+cambia su orientación (por ejemplo, haz oblicuo a 95º),
+se realizan así múltiples disparos con diferentes ángulos para tratar de capturar todas las partes del objeto.
+Luego este espectro también es recogido por los detectores\footnote{https://en.wikipedia.org/wiki/CT\_scan}.
+Como además los instrumentos tienen errores de medición es preferible realizar
+repetidas veces el mismo envío para tratar de disminuir estos errores de precisión asociados. 
+
+\subsection{Modelado del problema}
+Deseamos modelar el problema descrito mediante un sistema de ecuaciones lineales.
+Diremos que un rayo (que está dado por una recta en el espacio)
+atraviesa cierta distancia en un cierto tiempo.
+Dicho tiempo dependerá de la velocidad a la cual pueda hacerlo.
+A mayor densidad del objeto atravesado, menor velocidad.
+
+Las leyes físicas nos indican que, dado una velocidad \textit{v}, tiempo \textit{t} y distancia \textit{d},
+
+\begin{equation*}
+    t = d v^{-1}
+\end{equation*}
+
+Sin embargo, esta velocidad va a variar dependiendo el objeto que este atravesando en cada instante.
+Como las computadoras trabajan con sistemas discretos,
+para lograr determinar dicho sistema, elegiremos
+una determinada granularidad para poder representar a la imagen.
+Es decir, limitaremos nuestra reconstrucción a una imagen de cierta
+cantidad de píxeles, donde cada pixel representa cierto espacio.
+
+Dada una imagen cuadrada, la cual tomaremos como fuente de verdad absoluta,
+en escala de grises (es decir, con valores de 0 a 255 donde 0 representa al vacío y 255 a un objeto muy difícil de atravesar),
+simulamos el proceso tomográfico ``emitiendo'' un conjunto de rayos
+y midiendo su tiempo y distancia recorrida.
+Se discretiza al objeto en $n x n$ celdas cuadradas.
+Si llamamos $d^{k}_{ij}$ a la distancia que recorre el $k-esimo$ rayo en la celda $ij$
+(es decir, la cantidad de pixeles de la imagen original por los que pasa)
+y llamamos $v_{ij}$ a la velocidad de la señal del rayo en esa celda
+(cumpliendo que $v^{-1}_{ij}$ es el valor del pixel en dicho lugar),
+entonces el tiempo $t_{k}$ de recorrido de la señal completa es:
+
+\begin{equation*}
+    t_{k} = \sum_{i=1}^{n} \sum_{j=1}^{n} d^{k}_{ij} v^{-1}_{ij}
+\end{equation*}
+
+De esta manera, obtendremos un vector $t \in \mathbb{R}^{m}$, donde $m$ es la cantidad rayos, 
+tal que la coordenada $k$ del vector $t$ indica el tiempo de recorrida de la $k-esima$ señal.
+
+Si definimos una matriz $D \in \mathbb{R}^{mxn^{2}}$
+(dado que son $m$ rayos y $n^2$ pixeles de la discretización)
+con los valores $d^{k}_{ij}$ en cada fila $k$.
+A partir de $D$ y $t$,
+seremos capaces de reconstruir las velocidades de recorrida originales $v_{ij}$ resolviendo el sistema de ecuaciones: 
+
+\begin{equation*}
+    Ds = t    
+\end{equation*}
+
+Donde $s \in \mathbb{R}^{n^{2}}$ corresponderá a las inversas de las velocidades.
+Nos interesa \textit{s} por sobre \textit{v} ya que representa la densidad del objeto en cada punto,
+lo mismo que representaban los pixeles de la imagen original.
+
+La existencia de errores de medición en el vector $t$ hará que nuestro sistema resulte incompatible, 
+es decir que no será posible hallar un vector solución $s$. Para tratar este problema,
+resolveremos el sistema $Ds = t$ mediante el método de aproximación por cuadrados mínimos lineales, descripto más adelante en la sección \ref{sec:cml}, obteniendo así una solución que resuelve de forma aproximada el sistema original.
+
+
+\subsection{Simulación del tomógrafo}
+% Por qué simulamos? Cómo se modela eso? Contar las cosas que cuenta el enunciado SIN COPY PASTE
+% Ver si es mejor escribir estoy antes o despues de lo de modelado del problema
+
+Para poder evaluar nuestro modelo de reconstrucción necesitaríamos un tomógrafo
+o al menos poder contar con los datos crudos del mismo.
+Ambos requisitos resultan imposibles de satisfacer,
+pues contar con un tomógrafo real implicaría una gran inversión de dinero
+y acceder a datos médicos e historias clínicas ajenas esta regulado por ley\footnote{http://servicios.infoleg.gob.ar/infolegInternet/anexos/160000-164999/160432/norma.htm},
+sin siquiera comenzar a hablar de la continua exposición a radiación que esto conllevaría.
+
+Por estos motivos es que tomamos la decisión de realizar una simulación de nuestro tomógrafo.
+Ésta consistirá en generar datos de prueba partiendo de imágenes sintéticas que consideramos reales,
+es decir, serán la sección de nuestro objeto a escanear.
+Luego teniendo en cuenta el procedimiento a realizar, descrito anteriormente,
+interpretaremos el valor de cada pixel de la imagen como el dato real de densidad del cuerpo,
+es decir, como la velocidad (inversa) de recorrido de las señales de rayos X al atravesar ese pixel.
+
+Siguiendo el procedimiento que describimos anteriormente, nuestro modelo de simulación
+también debería ser capaz de poder simular rayos sobre la imagen real o cuerpo a escanear
+de distinta forma (distintos ángulos, etc.).
+Una vez definida la forma de generar rayos, debemos definir la discretización del espacio a escanear.
+
+De esta forma, estaríamos en condiciones de poder representar diferentes clases de tomógrafos
+con solo alternar la forma/dirección en que los rayos son generados y la discretización elegida,
+debido a que algunos los producen de forma axial, otros paralelos, etc.
+
+De acuerdo a lo mencionado anteriormente, primero nos encargaremos de generar los rayos
+sobre la imagen real para poder medir el tiempo $t_{k}$ de cada rayo $k$
+y la longitud del mismo rayo en cada celda de la grilla discretizada $d^{k}_{ij}$.
+
+\subsection{Resolución de CML}
+\label{sec:cml}
+% Contar por que usamos SVD y en que consiste
+
+\subsubsection{Utilización de CML y SVD} %porque usamos SVd?
+\label{sec:intro-cml}
+Como se discutió anteriormente, nuestro sistema de ecuaciones lineales estará sobredeterminado.
+Lo cual en principio no debería traer problemas mayores, pero sabemos que los instrumentos
+utilizados poseen error con lo cual este sistema no será un sistema compatible,
+es decir, que no seremos capaces de hallar un vector $s$ que sea solución de $Ds = t$.
+Por lo tanto, tendríamos que buscar una solución que aproxime de la mejor manera posible a la solución ideal del sistema.
+Para ello tendremos que estudiar métodos de aproximación,
+y en el presente trabajo nos proponemos evaluar el método de aproximación
+por cuadrados mínimos lineales (CML)\footnote{https://en.wikipedia.org/wiki/Least\_squares}.
+
+Con este método, en vez de resolver $Ds = t$, buscaremos minimizar
+
+\begin{equation*}
+    ||Ds - t||_{2}
+    \label{eq:1}
+\end{equation*}
+
+La utilización de este método implica la resolución de las ecuaciones normales,
+lo cual nos presenta un considerable problema de estabilidad numérica,
+pues por lo que veremos más adelante la matriz asociada al sistema de ecuaciones normales
+aumenta de manera cuadrática el número de condición que teníamos originalmente.
+Para tratar de solventar este problema utilizaremos la descomposición SVD\cite{burdenSVD} de la matriz $D$,
+pues podemos aplicarla para la solución de cuadrados mínimos lineales de la siguiente manera:
+
+% Sea una matriz A $\in \mathbb{R}^{mxn}$, con $m > n$, y un vector $b \in \mathbb{R}^{m}$. El objetivo de CML es hallar un $x \in \mathbb{R}^{n}$ tal que minimice $||Ax - b||_{2}.$
+Siendo $D = U \Sigma V^{t}$ la factorización SVD de $D$, y dado que $U$ y $V$ son ortogonales y preservan  norma:
+\begin{equation*}
+     ||Ds - t||_{2} = ||U\Sigma V^{t} s - t||_{2} = ||U^{t} (U\Sigma V^{t} s - t)||_{2} = ||\Sigma V^{t}s - U^{t}t||_{2}
+\end{equation*}
+Definimos $z = V^{t}s$ y $c = U^{t}t$. Luego:
+\begin{equation*}
+    ||Ds - t||_{2} = ||(\sigma_{1}z_{1} - c_{1},\sigma_{2}z_{2} - c_{2}, ... ,s_{k} z_{k} - c_{k} , -c_{k+1}, ... , -c_{m})^{t}||_{2}
+\end{equation*}
+\begin{equation*}
+    = \lbrace \sum^{k}_{i=1} (\sigma_{i}z_{i} - c_{i})^{2} + \sum^{m}_{i=k+1} (c_{i})^{2} \rbrace^{1/2}
+\end{equation*}
+La norma se minimiza cuando el vector $z$ se elige de la siguiente forma:
+\begin{equation*}
+    z_{i} =
+    \begin{cases}
+      c_{i}/\sigma_{i} & \text{si } i \leq k \\
+      arbitrario &  \text{si } k < i \leq n \\
+    \end{cases}
+\end{equation*}
+
+Finalmente, debido a que $c = U^{t}b$ y $x = Vz$ son ambas f\'aciles de computar, la solución de CML es f\'acilmente hallable.
+\subsection{Condicionamiento del sistema}
+% Contar sobre el k2, y que debe suceder para que DtD sea SDP
+Para estudiar el condicionamiento de la matriz $(D^{t}D) \in  \mathbb{R}^{mxm}$
+proponemos mirar su descomposición en valores singulares (SVD):
+
+Sea $D = U \Sigma V^{t}$ la SVD de $D$, luego:
+\begin{equation*}
+    D^{t}D = (U\Sigma V^{t})^{t}(U\Sigma V^{t}) = V\Sigma^{t}U^{t}U\Sigma V^{t} = V\Sigma^{t}\Sigma V^{t} 
+\end{equation*}
+
+Luego,
+\begin{equation}
+    D^{t}D = V\Sigma^{t}\Sigma V^{t}
+\end{equation}
+
+Ahora podemos hacer uso de la siguiente propiedad:
+
+Dada una matriz $A \in  \mathbb{R}^{nxn}$ y sea $r = rg(A)$, su número de condición es equivalente a la siguiente expresión:
+\begin{equation}
+    k_{2}(A) = || A ||_{2} . || A^{-1} ||_{2} = \sigma_{1}/\sigma_{r}
+\end{equation}
+
+Por lo tanto, si queremos saber el número de condición de la matriz $D^{t}D$
+debemos hallar los autovalores de la matriz $(D^{t}D)^{t}(D^{t}D)$,
+pues por definición los valores singulares de la matriz $D^{t}D$
+son la raíz cuadrada de los autovalores de $(D^{t}D)^{t}(D^{t}D)$.
+Pero como la matriz $D^{t}D$ es una matriz semidefinida positiva y  simétrica, pues $(D^{t}D)^{t} = (D^{t}D)$,
+sabemos que sus autovalores coinciden con sus valores singulares.
+
+Luego, hallemos los autovalores de $D^{t}D$ usando el resultado obtenido en (1):
+
+Sea $i = 1, ... , m$, veamos que pasa con $v_{i}$:
+\begin{equation*}
+    (D^{t}D).v_{i} = V \Sigma^{t}\Sigma V^{t}.v_{i} = V\Sigma^{t}\Sigma .e_{i} = 
+    V\Sigma .\sigma_{i}.e_{i} = V.(\sigma_{i})^{2}.e_{i} = (\sigma_{i})^{2}.v_{i}
+\end{equation*}
+
+Luego, $v_{i}$ es autovector de autovalor $\lambda_{i} = (\sigma_{i})^{2}$.
+Por lo tanto, obtenemos que los valores singulares de $D^{t}D$ son $\sigma\prime_{i} = \lambda_{i} = (\sigma_{i})^{2} $
+
+Finalmente, si $r = rg(D^{t}D)$ y utilizando la propiedad (2), el número de condición de la matriz $D^{t}D$ resulta:
+\begin{equation*}
+     k_{2}(D^{t}D) =  \sigma\prime_{1}/\sigma\prime_{r} = (\sigma_{1})^{2}/(\sigma_{r})^{2} = (\frac{\sigma_{1}}{\sigma_{r}})^{2} 
+\end{equation*}
+
+Esto implica que al estar utilizando cuadrados m\'inimos lineales el condicionamiento de la matriz asociada al sistema de ecuaciones normales que queremos resolver empeora de manera cuadr\'atica con respecto a la matriz asociada al sistema original, pues $k_{2}(D^{t}D) = (\frac{\sigma_{1}}{\sigma_{r}})^{2} = k_{2}(D)^{2}$
+
+Consecuentemente, si queremos que el número de condición de la matriz $D^{t}D$ resulte bajo, mirando el resultado obtenido en (2), requerimos que sus valores singulares estén todos muy próximos (el mínimo se realiza cuando $\sigma_{1} = \sigma_{r}$). 
+
+
+En nuestro caso particular, como la matriz  $D^{t}D$ es simétrica semidefinida positiva, hablar de sus valores singulares es equivalente a hablar de sus autovalores. Por lo tanto, requerimos que sus autovalores sean muy parecidos, es decir que si los graficamos como puntos en la recta real estos deberían verse como una recta. Y como estamos hablando de autovalores, esto es equivalente a decir que dada una base de autovectores, al aplicarle nuestra matriz a cualquier vector de este conjunto el mismo debería achicarse o estirarse una magnitud muy similar a cualquier otro. Lo cual resulta muy improbable de que pase.\footnote{http://web.math.princeton.edu/mathlab/projects/ranmatrices/yl/randmtx.PDF}\footnote{https://en.wikipedia.org/wiki/Circular\_law} Como consecuencia, con una alta probabilidad deberemos lidiar con una matriz mal condicionada.
+
+\subsection{Condiciones para que $D^{t}D$ sea SDP}
+Por otro lado, también nos interesa ver que la matriz $D^{t}D$ es una matriz simétrica semidefinida positiva
+y dar condiciones para que resulte una matriz simétrica definida positiva,
+para que esto nos garantice estabilidad numérica.
+
+Ya vimos anteriormente que $D^{t}D$ resulta una matriz simétrica, ahora veamos que resulta semidefinida positiva.
+
+Por definición tenemos que ver que $\forall x \neq 0 \ \in \mathbb{R}^{m} \ \ x^{t}(D^{t}D)x \geq 0$\\
+Veamos:
+\begin{equation*}
+    \forall x \neq 0 \ \in \mathbb{R}^{m} \ \ x^{t}(D^{t}D)x = (x^{t}D^{t})(Dx) = (Dx)^{t}(Dx) = ||Dx|| \geq 0
+\end{equation*}
+
+Luego nuestra matriz resulta semidefinida positiva. 
+
+Ahora demos condiciones para que resulte definida positiva,
+es decir que $\forall x \neq 0 \ \in \mathbb{R}^{m} \ \ x^{t}(D^{t}D)x > 0$
+
+Veamos:
+\begin{equation*}
+    \forall x \neq 0 \ \in \mathbb{R}^{m} \ \ ||Dx|| > 0 \Leftrightarrow \nexists \ x \neq 0 \ tal  \ que \ \ Dx = 0 \Leftrightarrow Nu(D) = \lbrace0\rbrace  \Leftrightarrow rg(D) = n^{2}
+\end{equation*}
+
+Por lo tanto, para que nuestra matriz sea simétrica definida positiva es suficiente pedir que la matriz $D$ sea de rango máximo. Que es lo mismo que decir que las columnas de $D$ sean linealmente independiente, y por como esta compuesta nuestra matriz, esto resulta equivalente a pedir que haya al menos $n^{2}$ filas, conformadas por los valores $d^{k}_{ij}$, que resulten linealmente independientes.
+
+\subsection{Aproximación de menor rango}
+\label{sec:lowrank}
+Una propiedad de gran importancia al usar la factorización SVD
+es la de poder aproximar la matriz reduciendo la cantidad de cálculos.
+
+Dado $D = U \Sigma V^{t}$ la factorización SVD de $D \in \mathbb{R}^{mxn}$,
+dado un $r$ natural, si se particiona $U$, $\Sigma$ y $V$ de forma que
+
+\begin{equation*}
+    U = 
+    \begin{bmatrix}
+        U_1 & U_2
+    \end{bmatrix},
+    \Sigma = 
+    \begin{bmatrix}
+        \Sigma_1 & 0 \\
+        0 & \Sigma_2
+    \end{bmatrix},
+    V = 
+    \begin{bmatrix}
+        V_1 & V_2
+    \end{bmatrix}
+\end{equation*}
+
+Con $U_1 \in \mathbb{R}^{mxr}$, $\Sigma \in \mathbb{R}^{rxr}$ y $V_1 \in \mathbb{R}^{nxr}$,
+entonces $D' = U_1 \Sigma_1 V^{t}_1$ es la matriz de rango r que minimiza la distancia \textit{Frobenius} a $D$
+\footnote{https://en.wikipedia.org/wiki/Low-rank\_approximation}.
+Es decir,
+\begin{equation*}
+    min_{A : rg(A) = r} ||D - A||_{F} = ||D - D'||_{F}
+\end{equation*}
+
+En la práctica, esto implica que no sea necesario calcular la factorización SVD
+completa para obtener buenos resultados\cite{lowrank}.
+
+
+

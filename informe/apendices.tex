@@ -1,0 +1,22 @@
+\appendix
+
+\section{Enunciado}
+\label{ap:enunciado}
+\includepdf[pages=-]{../enunciado/tp3.pdf}
+
+\section{Código fuente relevante numéricamente}
+
+Código del Método de la Potencia:
+\begin{lstlisting}
+double metodoPotencia(
+    const std::vector<std::vector<double>> &A,
+    std::vector<double> &v,
+    int numeroIteraciones) {
+    obtenerVectorRandom(v);
+
+    for (int iteracion = 0; iteracion < numeroIteraciones; iteracion++) {
+        v = normalizar(A * v);
+    }
+    return (v * (A * v)) / (v * v);
+}
+\end{lstlisting}

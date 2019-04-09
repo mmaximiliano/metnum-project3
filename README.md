@@ -31,6 +31,5 @@ Comandos disponibles de `Makefile`:
 - `make read`: abre el lector de pdf default del sistema con xdg-open.
 - `make clean`: elimina los archivos generados al compilar.
 
-# Presentacion:
-https://www.overleaf.com/9864682276hnddzdxbhtrn
+
 
